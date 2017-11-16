@@ -17,12 +17,14 @@ type Settings struct {
     field_rows int
 }
 
-type Game struct{
+type Game struct {
     round int
     field []int
     current_player_id int
     next_move int
 }
+
+
 
 var chosen_next_move int
 
@@ -87,50 +89,62 @@ func process_update(game *Game, s string) {
 func take_action(game *Game, settings *Settings) {
     game.current_player_id = settings.your_botid
 
-    minimax(game, settings, 0)
+    minimax(game, settings, settings.your_botid, 0)
     fmt.Fprintf(os.Stderr, "Actual decision: %d\n", chosen_next_move)
     fmt.Printf("place_disc %d\n", chosen_next_move)
+    //display_field(game, settings)
 }
 
-func minimax(game *Game, settings *Settings, deep int) int {
-    fmt.Fprintf(os.Stderr, "Round: %d => %d\n", game.round, chosen_next_move)
-    if len(possible_moves(game, settings)) == 0 {
+func minimax(game *Game, settings *Settings, player_id int, deep int) int {
+    deep += 1
+    if deep > 6 {
+        return 0
+    }
+    //fmt.Printf("YOUR BOT: %d\n", settings.your_botid)
+    //fmt.Printf("OPPONENT BOT: %d\n", settings.opponent_botid)
+    //fmt.Printf("CURRENT: %d\n", player_id)
+    if win_game(game, settings, player_id) {
+        if player_id == settings.your_botid {
+            return 10
+        } else if player_id == settings.opponent_botid {
+            return -10
+        }
+    }
+
+    var scores []int
+    var moves []int
+
+
+    possible_moves := possible_moves(game, settings)
+
+    if len(possible_moves) == 0 {
         // game is over with draw
         return 0
     }
 
-    if win_game(game, settings, game.current_player_id) {
-        if game.current_player_id == settings.your_botid {
-            return 10
-        } else if game.current_player_id == settings.opponent_botid {
-            return -10
-        }
-    }
-    var scores []int
-    var moves []int
-
-    var possible_game Game
-    possible_game = *game
-
-    possible_moves := possible_moves(&possible_game, settings)
-
-
     for _, possible_move := range possible_moves {
-        if possible_game.current_player_id == settings.your_botid {
-            possible_game.current_player_id = settings.opponent_botid //assume here that enemy has player_id == 1
+        field_number := make_move(game, settings, player_id, possible_move)
+
+
+	if player_id == settings.opponent_botid {
+            scores = append(scores, minimax(game, settings, settings.your_botid, deep))
+            moves = append(moves, possible_move)
         } else {
-            possible_game.current_player_id = settings.your_botid
+            scores = append(scores, minimax(game, settings, settings.opponent_botid, deep))
+            moves = append(moves, possible_move)
         }
-        make_move(&possible_game, settings, possible_game.current_player_id, possible_move)
 
-        scores = append(scores, minimax(&possible_game, settings, 0))
-        moves = append(moves, possible_move)
+        game.field[field_number] = -1
 
-        fmt.Printf("Scores: %v\n", scores)
-        fmt.Printf("Moves: %v\n", moves)
+
+
+
+        //fmt.Printf("Scores: %v\n", scores)
+        //fmt.Printf("Moves: %v\n", moves)
     }
 
-    if game.current_player_id == settings.your_botid {
+
+    if player_id == settings.your_botid {
         max := -100
         var max_index int
         for index, val := range scores {
@@ -164,43 +178,55 @@ func horizontal_check(game *Game, settings *Settings, player_id int) bool {
     for i := 0; i < settings.field_rows; i++ {
         count = 0
         for j := 0; j < settings.field_columns; j++ {
-            n := (i * settings.field_rows) + j
-            if count > 0 && game.field[n] != player_id {
-                count = 0
-            }
+            n := (i * settings.field_columns) + j
 
             if (game.field[n] == player_id) {
                 count += 1
             }
+
+            if count >= 4 {
+                return true
+            }
+
+            if count > 0 && game.field[n] != player_id {
+                count = 0
+            }
+
         }
 
-        if count >= 4 {
-            return true
-        }
     }
 
     return false
 }
 
 func vertical_check(game *Game, settings *Settings, player_id int) bool {
+    //fmt.Printf("CHECK FOR %d\n", player_id)
+
+    //display_field(game, settings)
     var count int
     //vertical check
     for j := 0; j < settings.field_columns; j++ {
         count = 0
         for i := 0; i < settings.field_rows; i++ {
-            n := (i * settings.field_rows) + j
-            if count > 0 && game.field[n] != player_id {
-                count = 0
-            }
+            n := (i * settings.field_columns) + j
 
             if (game.field[n] == player_id) {
                 count += 1
             }
+
+            if count >= 4 {
+                //fmt.Printf("PLAYER WON: %d\n", player_id)
+                return true
+            }
+
+            //fmt.Printf("n=%d, player_id_n=%d\n", n, game.field[n])
+            //fmt.Printf("count=%d\n", count)
+            if count > 0 && game.field[n] != player_id {
+                count = 0
+            }
+
         }
 
-        if count >= 4 {
-            return true
-        }
 
     }
     return false
@@ -211,26 +237,30 @@ func win_game(game *Game, settings *Settings, player_id int) bool {
     return (horizontal_check(game, settings, player_id) || vertical_check(game, settings, player_id))
 }
 
-func make_move(game *Game, settings *Settings, player_id int, column int) {
-    fmt.Printf("before move\n")
-    fmt.Printf("player: %d", player_id)
-    display_field(game, settings)
+func make_move(game *Game, settings *Settings, player_id int, column int) int {
+    //fmt.Printf("before move\n")
+    //fmt.Printf("player: %d", player_id)
+    //display_field(game, settings)
+
     var n int
     for i := settings.field_rows - 1; i >=0; i-- {
         n = (i * settings.field_columns) + column
         if game.field[n] == -1 {
-            fmt.Printf("move: %d\n", n)
+            //fmt.Printf("move: %d(%d:%d)\n", n, i, column)
             game.field[n] = player_id
-            break
+            return n
         }
     }
 
-    fmt.Printf("after move\n")
-    display_field(game, settings)
+    return -1
 }
 
 func possible_moves(game *Game, settings *Settings) []int {
     var p_moves []int
+
+    if len(game.field) == 0 {
+        return p_moves
+    }
     //returns integer with column number for possible move
     for i := 0; i < settings.field_columns; i++ {
         if game.field[i] == -1 {
@@ -246,9 +276,6 @@ func main() {
     scanner := bufio.NewScanner(os.Stdin)
     var settings Settings
     var game Game
-
-    fmt.Fprintf(os.Stderr, "here is one!")
-    os.Stderr.WriteString("here is second!")
 
     for {
         switch scanner.Scan() {
