@@ -13,5 +13,6 @@ settings field_height 6
 update game round 5
 update game field .,.,.,.,.,.,.,.,1,.,.,.,.,.,.,0,.,.,.,.,.,.,1,.,0,.,.,.,.,1,.,0,.,.,.,0,1,.,0,.,.,.
 action move 10000
+quit
 EOF
 ) | ./four_in_row/four_in_row

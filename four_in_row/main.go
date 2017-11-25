@@ -328,6 +328,7 @@ func main() {
     var settings Settings
     var game Game
 
+    F_CYCLE:
     for {
         switch scanner.Scan() {
         case strings.HasPrefix(scanner.Text(), "settings"):
@@ -342,8 +343,11 @@ func main() {
             process_update(&game, scanner.Text())
         case strings.HasPrefix(scanner.Text(), "action"):
             take_action(&game, &settings)
+        case strings.HasPrefix(scanner.Text(), "quit"):
+            break F_CYCLE
         default:
             continue
         }
     }
+
 }
