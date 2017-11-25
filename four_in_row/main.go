@@ -232,9 +232,60 @@ func vertical_check(game *Game, settings *Settings, player_id int) bool {
     return false
 }
 
+func diagonal_check(game *Game, settings *Settings, player_id int) bool {
+    for i := 0; i < settings.field_rows; i++ {
+        for j := 0; j < settings.field_columns; j++ {
+            n := (i * settings.field_columns) + j
+
+            if game.field[n] != player_id {
+                continue
+            }
+
+            if check_direction(game, settings, player_id, [...]int{i+1, i+2, i+3}, [...]int{j+1, j+2, j+3}) {
+                return true
+            }
+
+            if check_direction(game, settings, player_id, [...]int{i-1, i-2, i-3}, [...]int{j-1, j-2, j-3}) {
+                return true
+            }
+
+            if check_direction(game, settings, player_id, [...]int{i+1, i+2, i+3}, [...]int{j-1, j-2, j-3}) {
+                return true
+            }
+
+            if check_direction(game, settings, player_id, [...]int{i-1, i-2, i-3}, [...]int{j+1, j+2, j+3}) {
+                return true
+            }
+
+        }
+
+    }
+
+    return false
+
+}
+
+func check_direction(game *Game, settings *Settings, player_id int, i_pos [3]int, j_pos [3]int) bool {
+    for k := 0; k < len(i_pos); k++ {
+        n := (i_pos[k] * settings.field_columns) + j_pos[k]
+
+        if n < 0 || n >= len(game.field) {
+            return false
+        }
+
+        if game.field[n] != player_id {
+            return false
+        }
+    }
+
+    return true
+}
+
 
 func win_game(game *Game, settings *Settings, player_id int) bool {
-    return (horizontal_check(game, settings, player_id) || vertical_check(game, settings, player_id))
+    return (horizontal_check(game, settings, player_id) ||
+               vertical_check(game, settings, player_id) ||
+                  diagonal_check(game, settings, player_id))
 }
 
 func make_move(game *Game, settings *Settings, player_id int, column int) int {
