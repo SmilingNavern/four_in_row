@@ -11,8 +11,8 @@ settings time_per_move 500
 settings your_botid 1
 settings field_width 7
 settings field_height 6
-update game round 5
-update game field .,.,.,.,.,.,.,.,1,.,.,.,.,.,.,0,.,.,.,.,.,.,1,.,0,.,.,.,.,1,.,0,.,.,.,0,1,.,0,.,.,.
+update game round 9
+update game field .,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.
 action move 10000
 quit
 EOF

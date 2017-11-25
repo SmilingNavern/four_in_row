@@ -89,25 +89,60 @@ func process_update(game *Game, s string) {
 func take_action(game *Game, settings *Settings) {
     game.current_player_id = settings.your_botid
 
-    minimax(game, settings, settings.your_botid, 0)
+    _, possible_scores, possible_moves := minimax(game, settings, settings.your_botid, 0)
+
+    //get score for chosen_next_move
+    var move_index int
+    for index, move := range possible_moves {
+        if move == chosen_next_move {
+            move_index = index
+            break
+        }
+    }
+
+    var zero_count int
+    zero_moves := make([]int, settings.field_columns)
+    for i, val := range possible_scores {
+        if val == 0 {
+            zero_count += 1
+            zero_moves = append(zero_moves, possible_moves[i])
+        }
+    }
+
+    //if for our next move score 0 and
+    //we have more than one zero-move then we need additional heuristics
+    if possible_scores[move_index] == 0 && zero_count > 1 {
+        heuristing_scores := heuristics_scoring(game, settings)
+        //fmt.Printf("heuristing_scores: %v", heuristing_scores)
+
+        max_score := -100
+        for _, val := range zero_moves {
+            if heuristing_scores[val] > max_score {
+                max_score = heuristing_scores[val]
+                chosen_next_move = val
+            }
+        }
+    }
+
+
     fmt.Fprintf(os.Stderr, "Actual decision: %d\n", chosen_next_move)
     fmt.Printf("place_disc %d\n", chosen_next_move)
     //display_field(game, settings)
 }
 
-func minimax(game *Game, settings *Settings, player_id int, deep int) int {
+func minimax(game *Game, settings *Settings, player_id int, deep int) (int, []int, []int) {
     deep += 1
     if deep > 6 {
-        return 0
+        return 0, nil, nil
     }
     //fmt.Printf("YOUR BOT: %d\n", settings.your_botid)
     //fmt.Printf("OPPONENT BOT: %d\n", settings.opponent_botid)
     //fmt.Printf("CURRENT: %d\n", player_id)
     if win_game(game, settings, player_id) {
         if player_id == settings.your_botid {
-            return 10
+            return 10, nil, nil
         } else if player_id == settings.opponent_botid {
-            return -10
+            return -10, nil, nil
         }
     }
 
@@ -119,7 +154,7 @@ func minimax(game *Game, settings *Settings, player_id int, deep int) int {
 
     if len(possible_moves) == 0 {
         // game is over with draw
-        return 0
+        return 0, nil, nil
     }
 
     for _, possible_move := range possible_moves {
@@ -127,10 +162,12 @@ func minimax(game *Game, settings *Settings, player_id int, deep int) int {
 
 
 	if player_id == settings.opponent_botid {
-            scores = append(scores, minimax(game, settings, settings.your_botid, deep))
+            current_score, _, _ := minimax(game, settings, settings.your_botid, deep)
+            scores = append(scores, current_score)
             moves = append(moves, possible_move)
         } else {
-            scores = append(scores, minimax(game, settings, settings.opponent_botid, deep))
+            current_score, _, _ := minimax(game, settings, settings.opponent_botid, deep)
+            scores = append(scores, current_score)
             moves = append(moves, possible_move)
         }
 
@@ -155,7 +192,7 @@ func minimax(game *Game, settings *Settings, player_id int, deep int) int {
         }
 
         chosen_next_move = moves[max_index]
-        return scores[max_index]
+        return scores[max_index], scores, moves
     } else {
         min := 100
         var min_index int
@@ -168,7 +205,7 @@ func minimax(game *Game, settings *Settings, player_id int, deep int) int {
         }
 
         chosen_next_move = moves[min_index]
-        return scores[min_index]
+        return scores[min_index], scores, moves
     }
 }
 
@@ -321,6 +358,44 @@ func possible_moves(game *Game, settings *Settings) []int {
 
     //return -1 if no move
     return p_moves
+}
+
+// This function intended to provide game scoring based on some heuristics
+// We want to place our stones to middle of the game and 
+// also we want to make them more flat(not tall)
+// returns scoring for moves
+func heuristics_scoring(game *Game, settings *Settings) []int {
+    scores := make([]int, settings.field_columns)
+
+    half := settings.field_columns / 2
+    for i := 0; i < settings.field_columns; i++ {
+        if i < half {
+            scores[i] = i
+        } else {
+            scores[i] = settings.field_columns - i
+        }
+    }
+
+    for i := 0; i < settings.field_columns; i++ {
+        column_score := column_free_slots(game, settings, i)
+        scores[i] += column_score
+    }
+
+    return scores
+}
+
+//returns count of free slots for turns in column
+func column_free_slots(game *Game, settings *Settings, column int) int {
+    var n int
+    count := -1
+    for i := settings.field_rows - 1; i >=0; i-- {
+        n = (i * settings.field_columns) + column
+        if game.field[n] == -1 {
+            count += 1
+        }
+    }
+
+    return count
 }
 
 func main() {

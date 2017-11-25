@@ -1,6 +1,7 @@
 #!/bin/bash
 
 
+echo "SUPPOSED SOLUTION: 5"
 (
 cat <<EOF
 settings player_names player0,player1
