@@ -95,9 +95,9 @@ func take_action(game *Game, settings *Settings) {
     } else if game.round < 7 {
         game.deep_limit = 6
     } else  if game.round < 15{
-        game.deep_limit = 8
+        game.deep_limit = 7
     } else {
-        game.deep_limit = 12
+        game.deep_limit = 9
     }
 
     _ , scores, moves := minimax(game, settings, settings.your_botid, 0)
